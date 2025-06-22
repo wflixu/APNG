@@ -2,7 +2,7 @@
 
 # Xcode
 .DS_Store
-build/
+Build/
 DerivedData/
 xcuserdata/
 *.xcuserstate
