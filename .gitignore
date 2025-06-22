@@ -1,0 +1,60 @@
+# macOS Swift 项目 .gitignore
+
+# Xcode
+.DS_Store
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# SwiftPM
+.swiftpm/
+.build/
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Archives
+*.xcarchive
+
+# Playground
+timeline.xctimeline
+playground.xcworkspace
+
+# User-specific
+*.swp
+*.swo
+.idea/
+*.orig
+
+# App data
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SPM Packages
+Packages/
+Package.resolved
+
+# Xcode Server
+integration_logs/
+
+# SwiftLint
+.swiftlint.yml
+
+# Other
+*.log

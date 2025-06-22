@@ -27,6 +27,7 @@
 		5C700AFC2E0833C200FEE3B5 /* APNG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = APNG.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C700B0A2E0833C400FEE3B5 /* APNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = APNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C700B142E0833C400FEE3B5 /* APNGUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = APNGUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C700B272E08343600FEE3B5 /* APNGKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = APNGKit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +76,7 @@
 		5C700AF32E0833C200FEE3B5 = {
 			isa = PBXGroup;
 			children = (
+				5C700B272E08343600FEE3B5 /* APNGKit */,
 				5C700AFE2E0833C200FEE3B5 /* APNG */,
 				5C700B0D2E0833C400FEE3B5 /* APNGTests */,
 				5C700B172E0833C400FEE3B5 /* APNGUITests */,
