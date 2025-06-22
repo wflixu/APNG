@@ -3,7 +3,6 @@
 //
 //
 #if canImport(UIKit) || canImport(AppKit)
-import Delegate
 import Foundation
 import CoreGraphics
 
@@ -22,41 +21,24 @@ open class APNGImageView: PlatformView {
     /// Whether the animation should be played automatically when a valid `APNGImage` is set to the `image` property
     /// of `self`. Default is `true`.
     open var autoStartAnimationWhenSetImage = true
-    
-    /// A delegate called every time when a "play" (a single loop of the animated image) is done. The parameter number
-    /// is the count of played loops.
-    ///
-    /// For example, if an animated image is newly set and played, after its whole duration, this delegate will be
-    /// called with the number `1`. Then if the image contains a `numberOfPlays` more than 1, after its the animation is
-    /// played for another loop, this delegate is called with `2` again, etc.
-    public let onOnePlayDone = Delegate<PlayedLoopCount, Void>()
-    
-    /// A delegate called when the whole image is played for its `numberOfPlays` count. If the `numberOfPlays` of the
-    /// playing `image` is `nil`, this delegate will never be triggered.
-    public let onAllPlaysDone = Delegate<(), Void>()
-    
-    /// A delegate called when a frame decoding misses its requirement. This usually means the CPU resource is not
-    /// enough to display the animation at its full frame rate and causes a frame drop or latency of animation.
-    public let onFrameMissed = Delegate<FrameIndex, Void>()
-    
-    /// A delegate called when the `image` cannot be decoded during the displaying and the default image defined in the
-    /// APNG image data is displayed as a fallback.
-    ///
-    /// This delegate method is always called after the `onDecodingFrameError` delegate if in its parameter the
-    /// `DecodingErrorItem.canFallbackToDefaultImage` is `true`.
-    public let onFallBackToDefaultImage = Delegate<(), Void>()
 
-    /// A delegate called when the `image` cannot be decoded during the displaying and the default image decoding also
-    /// fails. The parameter error contains the reason why the default image cannot be decoded.
-    ///
-    /// This delegate method is always called after the `onDecodingFrameError` delegate if in its parameter the
-    /// `DecodingErrorItem.canFallbackToDefaultImage` is `false`.
-    public let onFallBackToDefaultImageFailed = Delegate<APNGKitError, Void>()
+    /// 每次动画循环完成时的回调。参数为已播放的循环次数。
+    public var onOnePlayDone: ((PlayedLoopCount) -> Void)?
     
-    /// A delegate called when the `image` cannot be decoded. It contains the encountered decoding error in its
-    /// parameter. After this delegate, either `onFallBackToDefaultImage` or `onFallBackToDefaultImageFailed` will be
-    /// called.
-    public let onDecodingFrameError = Delegate<DecodingErrorItem, Void>()
+    /// 动画全部播放完成时的回调（numberOfPlays 次）。如果 image.numberOfPlays 为 nil，则不会触发。
+    public var onAllPlaysDone: (() -> Void)?
+    
+    /// 解码某帧失败（丢帧）时的回调。参数为丢失的帧索引。
+    public var onFrameMissed: ((FrameIndex) -> Void)?
+    
+    /// 解码失败，回退到默认图片时的回调。
+    public var onFallBackToDefaultImage: (() -> Void)?
+    
+    /// 解码失败，且默认图片也解码失败时的回调。参数为错误信息。
+    public var onFallBackToDefaultImageFailed: ((APNGKitError) -> Void)?
+    
+    /// 解码帧出错时的回调。参数为错误项。
+    public var onDecodingFrameError: ((DecodingErrorItem) -> Void)?
     
     /// The timer type which is used to drive the animation. By default, if `CADisplayLink` is available, a
     /// `DisplayTimer` is used. On platforms that `CADisplayLink` is not available, a normal `Foundation.Timer` based
@@ -248,14 +230,14 @@ open class APNGImageView: PlatformView {
         backingLayer.contents = defaultImage?.layerContents(forContentsScale:scale)
         stopAnimating()
         onDecodingFrameError(.init(error: error, canFallbackToDefaultImage: true))
-        onFallBackToDefaultImage()
+        onFallBackToDefaultImage?()
     }
     
     private func defaultDecodingErrored(frameError: APNGKitError, defaultImageError: APNGKitError) {
         backingLayer.contents = nil
         stopAnimating()
         onDecodingFrameError(.init(error: frameError, canFallbackToDefaultImage: false))
-        onFallBackToDefaultImageFailed(defaultImageError)
+        onFallBackToDefaultImageFailed?(defaultImageError)
     }
     
     /// Starts the animation. Calling this method does nothing if the animation is already running.
@@ -328,13 +310,13 @@ open class APNGImageView: PlatformView {
         // The final of last frame in one play.
         if displayingFrameIndex == image.decoder.framesCount - 1 {
             playedCount = playedCount + 1
-            onOnePlayDone(playedCount)
+            onOnePlayDone?(playedCount)
         }
         
         // Played enough count. Stop animating and stay at the last frame.
         if !image.playForever && playedCount >= (image.numberOfPlays ?? 0) {
             stopAnimating()
-            onAllPlaysDone()
+            onAllPlaysDone?()
             return
         }
         
@@ -343,7 +325,7 @@ open class APNGImageView: PlatformView {
             // but unfortunately the decoding missed the target.
             // we can just wait for the next `step`.
             printLog("Missed frame for image \(image): target index: \(nextFrameIndex), while displaying the current frame index: \(displayingFrameIndex).", logLevel: .info)
-            onFrameMissed(nextFrameIndex)
+            onFrameMissed?(nextFrameIndex)
             frameMissed = true
             return
         }

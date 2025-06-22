@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreGraphics
-import Delegate
 
 /// Represents an APNG image object. This class loads an APNG file from disk or from some data object and provides a
 /// high level interface for you to set some animation properties. Once you get an `APNGImage` instance, you can set
@@ -63,7 +62,10 @@ public class APNGImage {
     ///
     /// This usually happens when the first decoding pass is done. In this delegate, you can make sure the APNG format
     /// is correct, all frames information is loaded, and the total `duration` returns a `.full` duration to you.
-    public var onFramesInformationPrepared: Delegate<(), Void> { decoder.onFirstPassDone }
+     public var onFramesInformationPrepared: (() -> Void)? {
+        get { decoder.onFirstPassDone }
+        set { decoder.onFirstPassDone = newValue }
+    }
     
     /// The loaded frames of current image. This returns the current state of loaded frames with its information.
     /// Be notice that only loaded frames are returned before `onFramesInformationPrepared` happens. If you need to

@@ -5,18 +5,10 @@
 //  Created by 李旭 on 2025/6/22.
 //
 
-//
-//  APNGDecoder.swift
-//
-//
-//  Created by Wang Wei on 2021/10/05.
-//
-
 import Foundation
 import Accelerate
 import ImageIO
 import zlib
-import Delegate
 
 // Decodes an APNG to necessary information.
 class APNGDecoder {
@@ -38,7 +30,7 @@ class APNGDecoder {
     let cachePolicy: APNGImage.CachePolicy
     
     // Called when the first pass is done.
-    let onFirstPassDone = Delegate<(), Void>()
+    var onFirstPassDone: (() -> Void)?
     
     let imageHeader: IHDR
     let animationControl: acTL
@@ -240,6 +232,16 @@ extension APNGDecoder {
         let ihdr = try imageHeader.updated(width: width, height: height).encode()
         let idat = IDAT.encode(data: data)
         return Self.pngSignature + ihdr + sharedData + idat + Self.IENDBytes
+    }
+     func setFirstFrameLoaded(frameResult: FirstFrameResult) {
+        guard firstFrameResult == nil else {
+            return
+        }
+        firstFrameResult = frameResult
+        sharedData.append(contentsOf: frameResult.dataBeforeFirstFrame)
+        set(frame: frameResult.frame, at: 0)
+        // 新增：首次解码完成时调用回调
+        onFirstPassDone?()
     }
 }
 
