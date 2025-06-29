@@ -7,15 +7,14 @@
 
 import Foundation
 
-extension APNGImage {
-    
+public extension APNGImage {
     /// Decoding options you can use when creating an APNG image view.
-    public struct DecodingOptions: OptionSet {
+    struct DecodingOptions: OptionSet, Sendable { // 添加 Sendable 协议
         public let rawValue: Int
         public init(rawValue: Int) {
             self.rawValue = rawValue
         }
-    
+
         /// Performs the first pass to decode all frames at the beginning.
         ///
         /// By default, APNGKit only decodes the minimal data from the image data or file, for example, APNG image
@@ -23,15 +22,15 @@ extension APNGImage {
         /// APNGKit to perform a full first pass before returning an image or throwing an error. This can help to
         /// detect any APNG data or file error before showing it or get the total frames information and gives you the
         /// total animation duration before actually displaying the image.
-        public static let fullFirstPass     = DecodingOptions(rawValue: 1 << 0)
-        
+        public static let fullFirstPass = DecodingOptions(rawValue: 1 << 0)
+
         /// Loads and holds the actual frame data when decoding the frames in the first pass.
         ///
         /// By default, APNGKit only records the data starting index and offset for each image data chunk. Enable this
         /// to ask APNGKit to copy out the image data for each frame at the first pass. So it won't read data again in
         /// the future playing loops. This option trades a bit CPU resource with cost of taking more memory.
-        public static let loadFrameData     = DecodingOptions(rawValue: 1 << 1)
-        
+        public static let loadFrameData = DecodingOptions(rawValue: 1 << 1)
+
         /// Holds the decoded image for each frame, so APNGKit will not render it again.
         ///
         /// By default, APNGKit determines the cache policy by the image properties itself, if neither
@@ -43,7 +42,7 @@ extension APNGImage {
         ///
         /// See ``APNGImage.CachePolicy`` for more.
         public static let cacheDecodedImages = DecodingOptions(rawValue: 1 << 2)
-        
+
         /// Drops the decoded image for each frame, so APNGKit will render it again when next time it is needed.
         ///
         /// By default, APNGKit determines the cache policy by the image properties itself, if neither
@@ -55,7 +54,7 @@ extension APNGImage {
         ///
         /// See ``APNGImage.CachePolicy`` for more.
         public static let notCacheDecodedImages = DecodingOptions(rawValue: 1 << 3)
-        
+
         /// Performs render for all frames before the APNG image finishes it initialization. This also enables
         /// `.fullFirstPass` and `.cacheDecodedImages` option.
         ///
@@ -72,12 +71,12 @@ extension APNGImage {
         ///
         /// If `fullFirstPass` and `cacheDecodedImages` are not set in the same decoding options, APNGKit adds them
         /// for you automatically, since only enabling `preRenderAllFrames` is meaningless.
-        public static let preRenderAllFrames  = DecodingOptions(
-                                                       rawValue: 1 << 4 |
-                                                       fullFirstPass.rawValue |
-                                                       cacheDecodedImages.rawValue
-                                                  )
-        
+        public static let preRenderAllFrames = DecodingOptions(
+            rawValue: 1 << 4 |
+                fullFirstPass.rawValue |
+                cacheDecodedImages.rawValue
+        )
+
         /// Skips verification of the checksum (CRC bytes) for each chunk in the APNG image data.
         ///
         /// By default, APNGKit verifies the checksum for all used chunks in the APNG data to make sure the image is
@@ -85,8 +84,8 @@ extension APNGImage {
         ///
         /// Enable this to ask APNGKit to skip this check. It improves the CPU performance a bit, but with the risk of
         /// reading and trust unchecked chunks. It is not recommended to skip the check.
-        public static let skipChecksumVerify   = DecodingOptions(rawValue: 1 << 5)
-        
+        public static let skipChecksumVerify = DecodingOptions(rawValue: 1 << 5)
+
         /// Unsets frame count limitation when reading an APNG image.
         ///
         /// By default, APNGKit applies a limit for frame count of the APNG image to 1024. It should be suitable for
@@ -94,15 +93,15 @@ extension APNGImage {
         ///
         public static let unlimitedFrameCount = DecodingOptions(rawValue: 1 << 6)
     }
-    
+
     // 并发安全的 actor 用于缓存策略（如后续需要可扩展）
-    actor CachePolicyStore {
+    internal actor CachePolicyStore {
         private var policy: CachePolicy = .noCache
         func set(_ policy: CachePolicy) { self.policy = policy }
         func get() -> CachePolicy { policy }
     }
 
-    public enum CachePolicy {
+    enum CachePolicy {
         /// Does not cache the decoded frame images.
         case noCache
         /// Caches the decoded frame images.
