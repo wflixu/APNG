@@ -8,6 +8,15 @@
 import Foundation
 import zlib
 
+// 并发安全的 actor 用于管理 chunk 数据（如有需要可扩展）
+actor ChunkStore<T> {
+    private var chunks: [T] = []
+    func append(_ chunk: T) { chunks.append(chunk) }
+    func all() -> [T] { chunks }
+    func count() -> Int { chunks.count }
+    func chunk(at index: Int) -> T? { index < chunks.count ? chunks[index] : nil }
+}
+
 // A general chunk interface defines the minimal meaningful data block in APNG.
 protocol Chunk {
     static var name: [Character] { get }

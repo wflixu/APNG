@@ -95,14 +95,13 @@ extension APNGImage {
         public static let unlimitedFrameCount = DecodingOptions(rawValue: 1 << 6)
     }
     
-    /// The cache policy APNGKit will use to determine whether cache the decoded frames or not.
-    ///
-    /// If not using cache (`.noCache` case), APNGKit renders each frame when it is going to be displayed onto screen, and drops the
-    /// image as soon as the next frame is shown. It has the most efficient memory performance, but with
-    /// the cost of high CPU usage, since each frame will be decoded every time it is shown.
-    ///
-    /// On the other hand, if using cache (`.cache` case), APNGKit caches the decoded images and prevent to draw it from
-    /// data again when displaying. It consumes more memory but you can get the least CPU usage.
+    // 并发安全的 actor 用于缓存策略（如后续需要可扩展）
+    actor CachePolicyStore {
+        private var policy: CachePolicy = .noCache
+        func set(_ policy: CachePolicy) { self.policy = policy }
+        func get() -> CachePolicy { policy }
+    }
+
     public enum CachePolicy {
         /// Does not cache the decoded frame images.
         case noCache

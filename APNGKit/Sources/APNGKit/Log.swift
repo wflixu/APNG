@@ -23,5 +23,5 @@ public enum LogLevel: Int32, Comparable {
     case verbose   = 0x10000000
     
     /// The global setting of the log printed by APNGKit.
-    public static var current: LogLevel = .default
+    @MainActor public static var current: LogLevel = .default
 }

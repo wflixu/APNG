@@ -8,6 +8,75 @@
 import Foundation
 import QuartzCore
 
+// 并发安全的 actor 用于管理 Timer 状态
+actor TimerState {
+    private var _isPaused: Bool = false
+    private var timer: Timer?
+    private let mode: RunLoop.Mode
+    private let action: (TimeInterval) -> Void
+    private weak var target: AnyObject?
+
+    init(mode: RunLoop.Mode, target: AnyObject, action: @escaping (TimeInterval) -> Void) {
+        self.mode = mode
+        self.target = target
+        self.action = action
+        self.timer = createTimer()
+    }
+
+    var isPaused: Bool {
+        get { _isPaused }
+        set {
+            if newValue {
+                timer?.invalidate()
+                _isPaused = true
+            } else {
+                if timer == nil || !(timer?.isValid ?? false) {
+                    timer = createTimer()
+                }
+                _isPaused = false
+            }
+        }
+    }
+
+    func invalidate() {
+        timer?.invalidate()
+        timer = nil
+        _isPaused = true
+    }
+
+    private func createTimer() -> Timer {
+        #if canImport(AppKit)
+        let displayMode = CGDisplayCopyDisplayMode(CGMainDisplayID())
+        let refreshRate = max(displayMode?.refreshRate ?? 60.0, 60.0)
+        #else
+        let refreshRate = 60.0
+        #endif
+
+        let interval: TimeInterval
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            interval = 0.0
+        } else {
+            interval = 1 / refreshRate
+        }
+        #else
+        interval = 1 / refreshRate
+        #endif
+
+        let timer = Timer(timeInterval: interval, target: self, selector: #selector(step), userInfo: nil, repeats: true)
+        RunLoop.main.add(timer, forMode: mode)
+        return timer
+    }
+
+    @objc private func step(timer: Timer) {
+        if target == nil {
+            timer.invalidate()
+        } else {
+            action(CACurrentMediaTime())
+        }
+    }
+}
+
 /// Provides a timer to drive the animation.
 ///
 /// The implementation of this protocol should make sure to not hold the timer's target. This allows the target not to
@@ -70,69 +139,22 @@ public class DisplayTimer: DrivingTimer {
 #endif
 
 public class NormalTimer: DrivingTimer {
-    
     public var timestamp: TimeInterval { CACurrentMediaTime() }
-    public func invalidate() { timer.invalidate() }
+    public func invalidate() { Task { await timerState.invalidate() } }
     public var isPaused: Bool {
-        get { !timer.isValid }
-        set {
-            if newValue {
-                timer.invalidate()
-            } else {
-                if !timer.isValid {
-                    timer = createTimer()
-                }
+        get {
+            get async {
+                await timerState.isPaused
             }
         }
+        set {
+            Task { await timerState.isPaused = newValue }
+        }
     }
-    
-    private var timer: Timer!
-    private let action: (TimeInterval) -> Void
-    private weak var target: AnyObject?
-    
-    private let mode: RunLoop.Mode
-    
+
+    private let timerState: TimerState
+
     public required init(mode: RunLoop.Mode? = nil, target: AnyObject, action: @escaping (TimeInterval) -> Void) {
-        
-        self.action = action
-        self.target = target
-        self.mode = mode ?? .common
-        self.timer = createTimer()
-    }
-    
-    private func createTimer() -> Timer {
-        // For macOS, read the refresh rate of display.
-        #if canImport(AppKit)
-        let displayMode = CGDisplayCopyDisplayMode(CGMainDisplayID())
-        let refreshRate = max(displayMode?.refreshRate ?? 60.0, 60.0)
-        #else
-        // In other cases, we assume a 60 FPS.
-        let refreshRate = 60.0
-        #endif
-        
-        let interval: TimeInterval
-        #if DEBUG
-        // For testing, make the timer fire as soon as possible to get accurate result.
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-            interval = 0.0
-        } else {
-            interval = 1 / refreshRate
-        }
-        #else
-        interval = 1 / refreshRate
-        #endif
-        let timer = Timer(timeInterval: interval, target: self, selector: #selector(step), userInfo: nil, repeats: true)
-        RunLoop.main.add(timer, forMode: mode)
-        return timer
-    }
-    
-    @objc private func step(timer: Timer) {
-        if target == nil {
-            // The original target is already release. No need to hold the display link anymore.
-            // This also allows `self` to be released.
-            timer.invalidate()
-        } else {
-            action(timestamp)
-        }
+        self.timerState = TimerState(mode: mode ?? .common, target: target, action: action)
     }
 }

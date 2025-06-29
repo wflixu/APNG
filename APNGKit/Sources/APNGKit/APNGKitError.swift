@@ -5,7 +5,6 @@
 //  Created by 李旭 on 2025/6/22.
 //
 
-
 import Foundation
 import ImageIO
 
@@ -23,10 +22,9 @@ public enum APNGKitError: Error {
     case internalError(Error)
 }
 
-extension APNGKitError {
-    
+public extension APNGKitError {
     /// Errors happening during decoding the image data.
-    public enum DecoderError {
+    enum DecoderError: Sendable {
         case fileHandleCreatingFailed(URL, Error)
         case fileHandleOperationFailed(FileHandle, Error)
         case wrongChunkData(name: String, data: Data)
@@ -40,53 +38,52 @@ extension APNGKitError {
         case imageDataNotFound
         case frameDataNotFound(expectedSequence: Int)
         case invalidFrameImageData(data: Data, frameIndex: Int)
-        case frameImageCreatingFailed(source: CGImageSource, frameIndex: Int)
+        case frameImageCreatingFailed(frameIndex: Int)
         case outputImageCreatingFailed(frameIndex: Int)
         case canvasCreatingFailed
         case multipleAnimationControlChunk
         case invalidRenderer
     }
-    
+
     /// Errors happening during creating the image.
-    public enum ImageError {
+    enum ImageError: Sendable {
         case resourceNotFound(name: String, bundle: Bundle)
         case normalImageDataLoaded(data: Data, scale: CGFloat)
     }
 }
 
-extension APNGKitError {
-    
+public extension APNGKitError {
     /// Returns the image data as a normal image if the error happens during creating image object.
     ///
     /// When the image cannot be loaded as an APNG, but can be represented as a normal image, this returns its data and
     /// a scale for the image.
-    public var normalImageData: (Data, CGFloat)? {
-        guard case .imageError(.normalImageDataLoaded(let data, let scale)) = self else {
+    var normalImageData: (Data, CGFloat)? {
+        guard case let .imageError(.normalImageDataLoaded(data, scale)) = self else {
             return nil
         }
         return (data, scale)
     }
 }
 
-extension Error {
+public extension Error {
     /// Converts `self` to an `APNGKitError` if it is.
     ///
     /// This is identical as `self as? APNGKitError`.
-    public var apngError: APNGKitError? { self as? APNGKitError }
+    var apngError: APNGKitError? { self as? APNGKitError }
 }
 
 extension APNGKitError {
     var shouldRevertToNormalImage: Bool {
         switch self {
-        case .decoderError(let reason):
+        case let .decoderError(reason):
             switch reason {
-            case .chunkNameNotMatched(let expected, let actual):
+            case let .chunkNameNotMatched(expected, actual):
                 let isCgBI = expected == IHDR.name && actual == ["C", "g", "B", "I"]
                 if isCgBI {
                     printLog("`CgBI` chunk found. It seems that the input image is compressed by Xcode and not supported by APNGKit. Consider to rename it to `apng` to prevent compressing.")
                 }
                 return isCgBI
-            case .lackOfChunk(let name):
+            case let .lackOfChunk(name):
                 return name == acTL.name
             default:
                 return false

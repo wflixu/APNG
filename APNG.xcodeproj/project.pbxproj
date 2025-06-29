@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5C6B533A2E112E2400E6ACF9 /* APNGKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5C6B53392E112E2400E6ACF9 /* APNGKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5C700B0B2E0833C400FEE3B5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,10 +28,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5C6B532B2E100FD400E6ACF9 /* APNGKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = APNGKit; sourceTree = "<group>"; };
 		5C700AFC2E0833C200FEE3B5 /* APNG.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = APNG.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C700B0A2E0833C400FEE3B5 /* APNGTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = APNGTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5C700B142E0833C400FEE3B5 /* APNGUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = APNGUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		5C700B272E08343600FEE3B5 /* APNGKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = APNGKit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -53,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C6B533A2E112E2400E6ACF9 /* APNGKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -73,13 +78,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5C6B52F22E10046D00E6ACF9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		5C700AF32E0833C200FEE3B5 = {
 			isa = PBXGroup;
 			children = (
-				5C700B272E08343600FEE3B5 /* APNGKit */,
+				5C6B532B2E100FD400E6ACF9 /* APNGKit */,
 				5C700AFE2E0833C200FEE3B5 /* APNG */,
 				5C700B0D2E0833C400FEE3B5 /* APNGTests */,
 				5C700B172E0833C400FEE3B5 /* APNGUITests */,
+				5C6B52F22E10046D00E6ACF9 /* Frameworks */,
 				5C700AFD2E0833C200FEE3B5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -114,6 +127,7 @@
 			);
 			name = APNG;
 			packageProductDependencies = (
+				5C6B53392E112E2400E6ACF9 /* APNGKit */,
 			);
 			productName = APNG;
 			productReference = 5C700AFC2E0833C200FEE3B5 /* APNG.app */;
@@ -409,6 +423,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cn.wflixu.APNG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -436,6 +451,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = cn.wflixu.APNG;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -553,6 +569,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5C6B53392E112E2400E6ACF9 /* APNGKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = APNGKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5C700AF42E0833C200FEE3B5 /* Project object */;
 }

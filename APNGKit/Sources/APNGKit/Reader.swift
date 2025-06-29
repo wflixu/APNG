@@ -90,63 +90,42 @@ final class FileReader: Reader {
     }
     
     func read(upToCount: Int) throws -> Data? {
-        // `FileHandle` will read a `nil` when given `upToCount: 0`.
-        // It does not what we want. Treat it as a special case to align the behavior to `DataReader`.
         if upToCount == 0 {
             return isFilePointerAtEnd ? nil : .init()
         }
         guard upToCount > 0 else {
             return nil
         }
-        
-        if #available(iOS 13.4, tvOS 13.4, macOS 10.15.4, *) {
-            do {
-                return try handle.read(upToCount: upToCount)
-            } catch {
-                throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
-            }
-        } else {
-            return handle.readData(ofLength: upToCount)
+        // 由于最低支持 macOS 15 / iOS 18 / tvOS 18，直接使用新API
+        do {
+            return try handle.read(upToCount: upToCount)
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
         }
     }
     
     func seek(toOffset: UInt64) throws {
-        if #available(iOS 13.4, tvOS 13.4, macOS 10.15.4, *) {
-            do {
-                try handle.seek(toOffset: UInt64(toOffset))
-            } catch {
-                throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
-            }
-        } else {
-            handle.seek(toFileOffset: UInt64(toOffset))
+        do {
+            try handle.seek(toOffset: UInt64(toOffset))
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
         }
     }
     
     func offset() throws -> UInt64 {
-        if #available(iOS 13.4, tvOS 13.4, macOS 10.15.4, *) {
-            do {
-                return try handle.offset()
-            } catch {
-                throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
-            }
-        } else {
-            return handle.offsetInFile
+        do {
+            return try handle.offset()
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
         }
     }
     
     private var isFilePointerAtEnd: Bool {
         do {
-            if #available(iOS 13.4, tvOS 13.4, macOS 10.15.4, *) {
-                let currentOffset = try handle.offset()
-                let endOffset = handle.seekToEndOfFile()
-                try handle.seek(toOffset: currentOffset)
-                return currentOffset == endOffset
-            } else {
-                let currentOffset = handle.offsetInFile
-                let endOffset = handle.seekToEndOfFile()
-                handle.seek(toFileOffset: currentOffset)
-                return currentOffset == endOffset
-            }
+            let currentOffset = try handle.offset()
+            let endOffset = handle.seekToEndOfFile()
+            try handle.seek(toOffset: currentOffset)
+            return currentOffset == endOffset
         } catch {
             return false
         }
@@ -154,6 +133,106 @@ final class FileReader: Reader {
     
     func clone() throws -> FileReader {
         let reader = try FileReader(url: url)
+        try reader.seek(toOffset: offset())
+        return reader
+    }
+}
+
+// 并发安全的 actor 封装 DataReader
+actor AsyncDataReader: Reader {
+    private var cursor: Int = 0
+    private let data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(bytes: [Byte]) {
+        self.data = Data(bytes)
+    }
+
+    func read(upToCount: Int) throws -> Data? {
+        guard upToCount >= 0 else {
+            return nil
+        }
+        guard cursor < data.count else { return nil }
+        let upper = min(cursor + upToCount, data.count)
+        defer { cursor = upper }
+        return Data(data[cursor ..< upper])
+    }
+
+    func seek(toOffset: UInt64) throws {
+        cursor = Int(toOffset.clamped(to: 0 ... UInt64(data.count)))
+    }
+
+    func offset() throws -> UInt64 {
+        UInt64(cursor)
+    }
+
+    func clone() throws -> AsyncDataReader {
+        let reader = AsyncDataReader(data: data)
+        try reader.seek(toOffset: offset())
+        return reader
+    }
+}
+
+// 并发安全的 actor 封装 FileReader
+actor AsyncFileReader: Reader {
+    private let handle: FileHandle
+    private let url: URL
+
+    init(url: URL) throws {
+        do {
+            self.url = url
+            self.handle = try FileHandle(forReadingFrom: url)
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleCreatingFailed(url, error))
+        }
+    }
+
+    func read(upToCount: Int) throws -> Data? {
+        if upToCount == 0 {
+            return isFilePointerAtEnd ? nil : .init()
+        }
+        guard upToCount > 0 else {
+            return nil
+        }
+        do {
+            return try handle.read(upToCount: upToCount)
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
+        }
+    }
+
+    func seek(toOffset: UInt64) throws {
+        do {
+            try handle.seek(toOffset: UInt64(toOffset))
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
+        }
+    }
+
+    func offset() throws -> UInt64 {
+        do {
+            return try handle.offset()
+        } catch {
+            throw APNGKitError.decoderError(.fileHandleOperationFailed(handle, error))
+        }
+    }
+
+    private var isFilePointerAtEnd: Bool {
+        do {
+            let currentOffset = try handle.offset()
+            let endOffset = handle.seekToEndOfFile()
+            try handle.seek(toOffset: currentOffset)
+            return currentOffset == endOffset
+        } catch {
+            return false
+        }
+    }
+
+    func clone() throws -> AsyncFileReader {
+        let reader = try AsyncFileReader(url: url)
         try reader.seek(toOffset: offset())
         return reader
     }
@@ -354,6 +433,46 @@ extension Reader {
     typealias ChunkPeekHandler = (PeekAction) throws -> ChunkReadResult
 }
 
+enum PeekAction {
+    // Read a chunk and its data.
+    case read(type: Chunk.Type? = nil, skipChecksumVerify: Bool = false)
+    // Read a data IDAT chunk with offset and length.
+    case readIndexedIDAT(skipChecksumVerify: Bool = false)
+    // Read a data fdAT chunk with offset and length.
+    case readIndexedfdAT(skipChecksumVerify: Bool = false)
+    // Reset pointer to the position before peeking.
+    case reset
+}
+
+enum ChunkReadResult {
+    case chunk(Chunk, Data)
+    case rawData(Data)
+    case none
+    
+    var fcTL: fcTL {
+        switch self {
+        case .chunk(let c, _): return c as! fcTL
+        case .rawData: fatalError()
+        case .none: fatalError()
+        }
+    }
+    
+    var IDAT: (IDAT, Data) {
+        switch self {
+        case .chunk(let c, let data): return (c as! IDAT, data)
+        case .rawData: fatalError()
+        case .none: fatalError()
+        }
+    }
+    
+    var fdAT: (fdAT, Data) {
+        switch self {
+        case .chunk(let c, let data): return (c as! fdAT, data)
+        case .rawData: fatalError()
+        case .none: fatalError()
+        }
+    }
+}
 enum PeekAction {
     // Read a chunk and its data.
     case read(type: Chunk.Type? = nil, skipChecksumVerify: Bool = false)
