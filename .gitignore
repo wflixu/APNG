@@ -11,6 +11,12 @@ xcuserdata/
 *.moved-aside
 *.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
 
+
+/Packages
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+
 # SwiftPM
 .swiftpm/
 .build/
