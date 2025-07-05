@@ -1,0 +1,1 @@
+这是一个 swift package，主要的功能是解析 和编码apng 图片，运行环境是 macOS 15 或 iOS 18， swift 版本是 6.1， 单元测试 使用的是 swift test 而不是 xctest。这个仓库中包含 APNGKit 和 APNGDemo, APNGKit 是 swift package lib； APNGDemo 是 swift package executable，用来测试 APNGKit。这是这个项目的全部上线文罅隙，请记住

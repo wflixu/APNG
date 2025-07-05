@@ -10,11 +10,11 @@ import Foundation
 
 extension Data {
     var bytes: [Byte] { [Byte](self) }
-    
+
     var intValue: Int {
         Int(UInt32(bytes))
     }
-    
+
     var byte: Byte {
         guard count == 1 else {
             assertionFailure("Trying to converting wrong number of data to a single byte")
@@ -22,9 +22,9 @@ extension Data {
         }
         return withUnsafeBytes { $0.load(as: Byte.self) }
     }
-    
+
     var characters: [Character] { map { .init(.init($0)) } }
-    
+
     subscript(_ index: Int) -> Byte {
         self[index ... index].byte
     }
@@ -45,9 +45,9 @@ extension Comparable {
     }
 }
 
-extension FixedWidthInteger {
-    public var bigEndianBytes: [Byte] {
-        [Byte](withUnsafeBytes(of: self.bigEndian) { Data($0) })
+public extension FixedWidthInteger {
+    var bigEndianBytes: [Byte] {
+        [Byte](withUnsafeBytes(of: bigEndian) { Data($0) })
     }
 }
 
@@ -65,11 +65,5 @@ extension UnsignedInteger {
 }
 
 func printLog(_ item: Any, logLevel: LogLevel = .default) {
-    if logLevel == .off || LogLevel.current == .off {
-        return
-    }
-    if logLevel <= LogLevel.current {
-        print("[APNGKit] \(item)")
-    }
+    print("[APNGKit] \(item)")
 }
-

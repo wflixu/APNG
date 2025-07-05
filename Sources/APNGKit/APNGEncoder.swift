@@ -7,12 +7,14 @@
 import Foundation
 
 enum APNGEncoder {
-    // CRC32 计算
-    private static var crc32Table: [UInt32] = (0 ..< 256).map { i in
-        (0 ..< 8).reduce(UInt32(i)) { c, _ in
-            (c & 1) != 0 ? (0xEDB8_8320 ^ (c >> 1)) : (c >> 1)
+    // CRC32 计算表采用 lazy 静态属性，保证并发安全
+    private static let crc32Table: [UInt32] = {
+        (0 ..< 256).map { i in
+            (0 ..< 8).reduce(UInt32(i)) { c, _ in
+                (c & 1) != 0 ? (0xEDB8_8320 ^ (c >> 1)) : (c >> 1)
+            }
         }
-    }
+    }()
 
     static func crc32(_ data: Data) -> UInt32 {
         var crc: UInt32 = 0xFFFF_FFFF

@@ -28,7 +28,7 @@ APNG 是一个用于 macOS 的 APNG（Animated PNG）图片格式解码、显示
 
 1. 克隆代码库
     ```sh
-    git clone https://github.com/yourname/APNG.git
+    git clone https://github.com/wflixu/APNG.git
     cd APNG
     ```
 2. 用 Xcode 打开 `APNG.xcodeproj`
@@ -59,3 +59,9 @@ MIT License
 ---
 
 > 本项目仅用于学习与研究 APNG 格式相关技
+
+## 感谢
+本项目查考 [onevcat/APNGKit](https://github.com/onevcat/APNGKit/tree/master) APNG 解码和显示的实现
+
+
+

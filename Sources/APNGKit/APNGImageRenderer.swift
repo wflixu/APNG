@@ -8,15 +8,14 @@
 import ImageIO
 import Foundation
 
-
-// 线程安全的 APNG 渲染器，支持并发环境
+// 线程安全的 APNG 渲染器，支持并发环境、SwiftUI、macOS 15、Swift 6.1
 actor APNGImageRenderer {
     let reader: Reader
     let decoder: APNGDecoder
 
     private let outputBuffer: CGContext
-    private(set) var output: Result<CGImage, APNGKitError>?
-    private(set) var currentIndex: Int = 0
+    private var output: Result<CGImage, APNGKitError>?
+    private var currentIndex: Int = 0
 
     private var currentOutputImage: CGImage?
     private var previousOutputImage: CGImage?
@@ -47,6 +46,28 @@ actor APNGImageRenderer {
         } else {
             try await loadAndRenderFirstFrame()
         }
+    }
+
+    // 并发安全的公开接口
+    func renderNext() async throws -> CGImage {
+        try await renderNextImpl()
+    }
+
+    func reset() async throws {
+        if currentIndex == 0 { return }
+        var firstFrame: APNGFrame? = nil
+        var firstFrameData: Data? = nil
+
+        firstFrame = decoder.frame(at: 0)
+        firstFrameData = try firstFrame?.loadData(with: reader)
+        try await applyResetStatus()
+
+        if decoder.cachePolicy == .cache, !decoder.isAllFramesCached {
+            try decoder.resetDecodedImageCache()
+        }
+
+        currentIndex = 0
+        output = .success(try await render(frame: firstFrame!, data: firstFrameData!, index: 0))
     }
 
     private func loadAndRenderFirstFrame() async throws {
@@ -105,23 +126,6 @@ actor APNGImageRenderer {
         }
         try reader.seek(toOffset: resetStatus.offset)
         expectedSequenceNumber = resetStatus.expectedSequenceNumber
-    }
-
-    func reset() async throws {
-        if currentIndex == 0 { return }
-        var firstFrame: APNGFrame? = nil
-        var firstFrameData: Data? = nil
-
-        firstFrame = decoder.frame(at: 0)
-        firstFrameData = try firstFrame?.loadData(with: reader)
-        try applyResetStatus()
-
-        if decoder.cachePolicy == .cache, !decoder.isAllFramesCached {
-            try decoder.resetDecodedImageCache()
-        }
-
-        currentIndex = 0
-        output = .success(try await render(frame: firstFrame!, data: firstFrameData!, index: 0))
     }
 
     typealias FirstFrameResult = APNGDecoder.FirstFrameResult
@@ -275,31 +279,8 @@ actor APNGImageRenderer {
         return (result, allData)
     }
 
-    // 渲染下一帧（异步）
-    func renderNext() async {
-        output = nil
-        do {
-            let (image, index) = try await renderNextImpl()
-            output = .success(image)
-            currentIndex = index
-        } catch {
-            output = .failure(error as? APNGKitError ?? .internalError(error))
-        }
-    }
-
-    // 同步渲染下一帧（并发模型下只能异步调用）
-    func renderNextSync() async throws {
-        output = nil
-        do {
-            let (image, index) = try await renderNextImpl()
-            output = .success(image)
-            currentIndex = index
-        } catch {
-            output = .failure(error as? APNGKitError ?? .internalError(error))
-        }
-    }
-
-    private func renderNextImpl() async throws -> (CGImage, Int) {
+    // 渲染下一帧的实现
+    private func renderNextImpl() async throws -> CGImage {
         let image: CGImage
         var newIndex = currentIndex + 1
         if decoder.isDuringFirstPass {
@@ -311,7 +292,7 @@ actor APNGImageRenderer {
             image = try await render(frame: frame, data: data, index: newIndex)
             if !decoder.isDuringFirstPass {
                 _ = try reader.readChunk(type: IEND.self, skipChecksumVerify: decoder.options.contains(.skipChecksumVerify))
-                await MainActor.run { self.decoder.onFirstPassDone() }
+                await MainActor.run { self.decoder.onFirstPassDone?() }
             }
         } else {
             if newIndex == decoder.framesCount {
@@ -319,9 +300,12 @@ actor APNGImageRenderer {
             }
             image = try await renderFrame(frame: decoder.frame(at: newIndex)!, index: newIndex)
         }
-        return (image, newIndex)
+        currentIndex = newIndex
+        output = .success(image)
+        return image
     }
 
+    // 渲染指定帧
     private func renderFrame(frame: APNGFrame, index: Int) async throws -> CGImage {
         guard !decoder.isDuringFirstPass else {
             preconditionFailure("renderFrame cannot work until all frames are loaded.")
@@ -333,6 +317,7 @@ actor APNGImageRenderer {
         return try await render(frame: frame, data: data, index: index)
     }
 
+    // 渲染核心逻辑
     private func render(frame: APNGFrame, data: Data, index: Int) async throws -> CGImage {
         if let cached = decoder.cachedImage(at: index), decoder.isAllFramesCached {
             return cached
@@ -436,6 +421,7 @@ extension IHDR {
         width * Int(bytesPerPixel)
     }
 }
+
 
 extension CGColorSpace {
     static let deviceRGB = CGColorSpaceCreateDeviceRGB()

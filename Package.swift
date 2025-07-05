@@ -26,7 +26,7 @@ let package = Package(
         .target(
             name: "APNGKit",
             resources: [
-                .process("Resources") // 处理库资源
+                .process("Resources")
             ]
         ),
         // 库测试目标
@@ -34,7 +34,7 @@ let package = Package(
             name: "APNGKitTests",
             dependencies: ["APNGKit"],
             resources: [
-                .process("Resources") // 测试资源
+                .process("Resources")
             ]
         ),
         // 可执行Demo目标
@@ -43,7 +43,8 @@ let package = Package(
             dependencies: ["APNGKit"],
             path: "Sources/APNGDemo",
             resources: [
-                .process("Resources") // Demo资源
+                .copy("Resources/Images") ,
+               .process("Resources/Assets.xcassets"),
             ]
         ),
     ]
