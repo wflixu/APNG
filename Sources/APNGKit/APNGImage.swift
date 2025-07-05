@@ -1,4 +1,4 @@
-//
+
 //  APNGImage.swift
 //  APNGKit
 //

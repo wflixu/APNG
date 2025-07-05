@@ -5,11 +5,9 @@
 //  Created by 李旭 on 2025/6/22.
 //
 
+import ImageIO
+import Foundation
 
-import ImageIO
-import Foundation
-import ImageIO
-import Foundation
 
 // 线程安全的 APNG 渲染器，支持并发环境
 actor APNGImageRenderer {

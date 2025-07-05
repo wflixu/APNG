@@ -20,9 +20,9 @@ APNG 是一个用于 macOS 的 APNG（Animated PNG）图片格式解码、显示
 
 ### 依赖
 
-- macOS 12.0 及以上
-- Xcode 14 及以上
-- Swift 5.7 及以上
+- macOS 15.4 及以上
+- Xcode 16 及以上
+- Swift 6.1 及以上
 
 ### 编译与运行
 
